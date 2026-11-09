@@ -1,246 +1,220 @@
-ShopTrack Pro
+# ShopTrack Pro
 
-A modern, offline-first shop inventory and price management application for Android.
+An offline-first Android application for managing shop inventory, product prices, stock movements, and sales.
 
-ShopTrack Pro helps shop owners manage multiple shops, products, pricing, stock movements, and sales from a single Android device. It is designed to work offline, with locally stored data and no account, backend, or cloud connection required for its core functionality.
+## Overview
 
-«Current Version: 2.2.6
-Project Status: Source code is available, but a successful build and complete test run have not yet been verified. Testing is recommended before using the application for live business operations.»
+ShopTrack Pro is an Android application designed to help shopkeepers manage their daily business operations. It provides tools for maintaining product catalogs, tracking stock, managing prices, recording sales, and monitoring inventory across multiple shops.
 
----
+The application uses local storage to keep business data available on the device without requiring a continuous internet connection.
 
-Features
+**Current Version:** `2.2.6`
 
-Shop Management
+## Features
 
-- Manage multiple shops independently on one device.
-- Switch between different shop inventories.
-- Separate owner and public browsing modes.
-- Protect owner functionality using a PIN.
+### Shop Management
+- Manage multiple shops from one application.
+- Support for owner and public access modes.
+- PIN-based application access protection.
+- Maintain separate shop inventory.
 
-Product Management
+### Product Management
+- Browse and manage product catalogs.
+- Support for Hindi and Hinglish product aliases.
+- Search and identify products.
+- Match scanned barcodes against the local catalog.
+- Maintain multiple price options for products.
+- Track product price changes.
 
-- Browse and manage a product catalog.
-- Search using English, Hindi, and Hinglish aliases.
-- Organize products by category.
-- Add and edit product details.
-- Store product barcode information.
+### Inventory Management
+- Manage product stock.
+- Record inventory movements.
+- Monitor available stock.
+- Identify products with low stock.
+- Maintain shop-wise inventory information.
 
-Barcode Scanning and OCR
+### Sales and Reports
+- Record basic product sales.
+- View sales information and reports.
+- Track product price history.
+- Use built-in calculation utilities.
 
-- Scan product barcodes using the device camera.
-- Match scanned barcodes against locally saved product records.
-- Recognize printed Latin-script text using on-device OCR.
-- Review OCR suggestions before saving product information.
+### Backup and Restore
+- Export application data in JSON format.
+- Restore previously exported JSON backups.
+- Keep local copies of business information.
 
-Pricing and Inventory
+## Screenshots
 
-- Configure multiple quantity and unit-based price options.
-- Maintain private purchase prices and public selling prices.
-- Record stock-in, stock-out, and stock adjustments.
-- Monitor current stock levels.
-- Configure minimum-stock thresholds.
-- Receive low-stock warnings.
+<!-- Add application screenshots here -->
 
-Sales and Reports
+<!--
+<p align="center">
+  <img src="screenshots/home.png" width="220" alt="Home Screen">
+  <img src="screenshots/products.png" width="220" alt="Products Screen">
+  <img src="screenshots/inventory.png" width="220" alt="Inventory Screen">
+</p>
+-->
 
-- Record product sales.
-- Review sales history.
-- View gross-profit summaries.
-- Track product price changes over time.
+## Technology Stack
 
-Calculators
+| Technology | Purpose |
+|---|---|
+| Kotlin | Primary programming language |
+| Jetpack Compose | UI development |
+| Material 3 | UI components and design |
+| Room | Local database management |
+| SQLite | Local data storage |
+| ZXing | Barcode scanning |
+| Google ML Kit | Text recognition |
+| Gson | JSON serialization and deserialization |
+| Gradle Kotlin DSL | Build configuration |
 
-- Profit and loss calculations.
-- Profit margin calculations.
-- Basic arithmetic calculator.
+## Project Configuration
 
-Backup and Restore
+| Configuration | Version |
+|---|---|
+| Android Gradle Plugin | 8.6.1 |
+| Kotlin | 2.0.21 |
+| KSP | 2.0.21-1.0.28 |
+| Compile SDK | 35 |
+| Minimum Android Version | Android 8.0 (API 26) |
+| Java | 17 |
+| Kotlin JVM Target | 17 |
+| Application Version | 2.2.6 |
+| Version Code | 27 |
+| Application ID | `com.shoptrackpro.app` |
 
-- Export application records as JSON.
-- Restore records using Android's document picker.
-- Keep local backups for data recovery.
+## Requirements
 
----
+- Android Studio
+- Android SDK 35
+- JDK 17
+- Gradle 8.7 or a compatible Gradle 8.x installation
+- An Android device or emulator running Android 8.0 or later
 
-Technology Stack
+**Note:** This repository does not currently include the Gradle Wrapper. You need a compatible Gradle installation to build the project.
 
-Technology| Purpose
-Kotlin| Primary programming language
-Jetpack Compose| User interface
-Material 3| UI components and design
-Room| Local database
-SQLite| Local data storage
-ZXing Android Embedded| Barcode scanning
-Google ML Kit| On-device text recognition
-Gson| JSON backup and restoration
-Gradle Kotlin DSL| Build configuration
+## Getting Started
 
----
+### 1. Clone the Repository
 
-Project Configuration
+```bash
+git clone https://github.com/shoryadevraj/ShopTrackPro.git
+```
 
-Component| Version
-Android Gradle Plugin| 8.6.1
-Kotlin| 2.0.21
-KSP| 2.0.21-1.0.28
-Compile SDK| 35
-Target SDK| 35
-Minimum Android Version| Android 8.0 (API 26)
-Java/Kotlin Target| 17
+### 2. Open the Project
 
-Prerequisites
+Open the cloned `ShopTrackPro` folder in Android Studio.
 
-To build the project, you need:
+Allow Android Studio to synchronize the Gradle project and download the required dependencies.
 
-- A compatible JDK.
-- Android SDK Platform 35.
-- Android SDK Build Tools.
-- Gradle 8.7 or a compatible newer 8.x version.
-- A compatible Android development environment.
+### 3. Configure the Android SDK
 
-Note: The source archive does not currently include the Gradle Wrapper ("gradlew" and "gradle/wrapper/"). You must install a compatible Gradle version separately or configure the project in an Android IDE.
+Make sure Android SDK 35 and JDK 17 are installed and configured in Android Studio.
 
----
+### 4. Build the Application
 
-Building the Project
+To generate a debug APK using an installed Gradle distribution, run:
 
-Build a Debug APK
-
-After configuring Gradle and the Android SDK, run the following command from the project root:
-
+```bash
 gradle :app:assembleDebug
+```
 
 The generated APK should be available at:
 
+```text
 app/build/outputs/apk/debug/app-debug.apk
+```
 
-The debug APK is intended for development and testing.
+### 5. Run the Application
 
-Build a Signed Release APK
+Connect an Android device with USB debugging enabled or start an Android emulator.
 
-To distribute the application, configure a release signing key.
+Run the application through Android Studio.
 
-1. Generate a keystore
+## Release Build
 
-keytool -genkeypair -v \
-  -keystore shoptrack-release.jks \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000 \
-  -alias shoptrack
+To generate a signed release APK:
 
-2. Create "keystore.properties"
+1. Create an Android signing keystore.
+2. Configure your signing credentials locally.
+3. Select the release build variant.
+4. Build the release APK.
 
-Create this file in the project root:
+Keep your keystore and signing credentials private. Never commit signing files, passwords, or private keys to GitHub.
 
-storeFile=shoptrack-release.jks
-storePassword=YOUR_KEYSTORE_PASSWORD
-keyAlias=shoptrack
-keyPassword=YOUR_KEY_PASSWORD
+If you change the signing identity, existing users may not be able to install the updated application over an existing installation.
 
-Replace the example values with your actual credentials.
+## Project Structure
 
-3. Build the release APK
-
-gradle :app:assembleRelease
-
-Expected output:
-
-app/build/outputs/apk/release/app-release.apk
-
-The release signing configuration reads "keystore.properties" when available. Make sure the required signing configuration is present before building a distributable release.
-
-«Security: Never upload your keystore, signing passwords, or "keystore.properties" file to GitHub. Keep your signing key securely backed up.»
-
-«Update compatibility: Android generally requires application updates to use the same signing identity as the installed version. A newly generated keystore will not match an APK signed with a different key. Verify the existing APK's signing certificate before selecting a release key.»
-
----
-
-Getting Started
-
-1. Install and launch ShopTrack Pro.
-2. Create an owner PIN.
-3. Add one or more shops.
-4. Select a shop to manage its inventory.
-5. Add products from the catalog or create custom products.
-6. Configure selling prices and optional purchase prices.
-7. Record stock-in before recording sales.
-8. Monitor inventory and review sales reports.
-9. Export JSON backups regularly and store them securely.
-
----
-
-Known Limitations
-
-- The starter catalog is not a complete or verified database of every product and SKU. Owners can add and edit products.
-- Barcode scanning works offline but only matches barcodes saved in the local catalog. It does not query a global product database.
-- OCR supports Latin-script text. Hindi OCR and universal product-image recognition are not included.
-- Each sales action currently records one selected product. Multi-item carts and invoices are not included.
-- GST/tax handling, discounts, returns, and supplier ledgers are not included.
-- Stock movements support IN, OUT, and ADJUST. Inter-shop transfers and expiry or batch tracking are not included.
-- JSON backups do not include external image files.
-- The owner PIN protects application screens but does not replace device security or encrypted database storage.
-- Each installation maintains its own local data. Automatic synchronization between devices is not available.
-
----
-
-Project Structure
-
+```text
 ShopTrackPro/
+│
 ├── app/
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/com/shoptrackpro/app/
-│   │       │   ├── Backup.kt
-│   │       │   ├── Catalog.kt
-│   │       │   ├── Database.kt
-│   │       │   ├── MainActivity.kt
-│   │       │   └── Security.kt
-│   │       ├── res/
-│   │       └── AndroidManifest.xml
-│   └── build.gradle.kts
+│   ├── build.gradle.kts
+│   └── src/
+│       └── main/
+│           ├── java/com/shoptrackpro/app/
+│           │   ├── Backup.kt
+│           │   ├── Catalog.kt
+│           │   ├── Database.kt
+│           │   ├── MainActivity.kt
+│           │   └── Security.kt
+│           │
+│           ├── res/
+│           │   ├── drawable/
+│           │   ├── drawable-nodpi/
+│           │   ├── mipmap-anydpi-v26/
+│           │   └── values/
+│           │
+│           └── AndroidManifest.xml
+│
 ├── build.gradle.kts
 ├── gradle.properties
 ├── settings.gradle.kts
 ├── .gitignore
 └── README.md
+```
 
----
+## Current Limitations
 
-Version Information
+The following limitations should be considered when using the current version:
 
-Detail| Value
-Application| ShopTrack Pro
-Version| 2.2.6
-Version Code| 27
-Application ID| "com.shoptrackpro.app"
-Platform| Android
+- The starter product catalog is not a complete product database.
+- Barcode matching depends on products available in the local catalog.
+- OCR currently supports Latin-script text recognition.
+- Sales are recorded through a single-product sales action.
+- Shopping cart functionality is not available.
+- GST invoices, discounts, returns, and supplier ledgers are not currently supported.
+- Inter-shop stock transfers and batch tracking are not available.
+- JSON backups do not include externally stored product images.
+- PIN protection should not be considered equivalent to encrypted database storage.
+- The application currently does not provide cloud synchronization.
 
----
-
-Privacy and Data Storage
+## Data and Privacy
 
 ShopTrack Pro is designed around local data storage.
 
-- Core application functionality does not require an online account.
-- Shop and inventory records are stored locally on the device.
-- Barcode matching uses the local product catalog.
-- OCR is performed on-device.
-- Users can export their records using JSON backup.
+Users should regularly export backups to protect their information.
 
-Keep backups in a secure location. Anyone with access to an unprotected backup file may be able to read its contents.
+**Important:** Backup files may contain sensitive shop and business information. Do not upload personal backup JSON files or other private data to a public repository.
 
----
+## Version Information
 
-GitHub Distribution
+- **Application:** ShopTrack Pro
+- **Version:** 2.2.6
+- **Version Code:** 27
+- **Package Name:** `com.shoptrackpro.app`
+- **Platform:** Android
 
-The repository contains the application's source code and development resources.
+## Developer
 
-For downloadable application builds, use GitHub Releases rather than committing generated APK files into the source repository.
+**Shorya Devraj**
 
-Example release tag:
+- GitHub: [@shoryadevraj](https://github.com/shoryadevraj)
+- Repository: [ShopTrackPro](https://github.com/shoryadevraj/ShopTrackPro)
 
-v2.2.6
+## License
 
-Attach
+No license has been specified yet. All rights are reserved by the author unless a license is added to this repository.
