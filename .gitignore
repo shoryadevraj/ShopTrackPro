@@ -1,0 +1,22 @@
+*.iml
+.gradle/
+.idea/
+local.properties
+/build/
+**/build/
+*.apk
+*.aab
+keystore.properties
+*.jks
+*.keystore
+
+# Private data and secrets
+*.json.bak
+*backup*.json
+.env
+.env.*
+*.log
+
+# Android signing files
+*.p12
+*.pem
