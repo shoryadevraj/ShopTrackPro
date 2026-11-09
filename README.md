@@ -1,20 +1,18 @@
 # ShopTrack Pro
 
-```{=html}
 <p align="center">
-```
-`<strong>`{=html}Offline-first Android shop management`</strong>`{=html}
-`<br>`{=html} Manage products, prices, inventory, and sales from your
-Android device. `<br>`{=html}`<br>`{=html}
-`<a href="https://github.com/shoryadevraj/ShopTrackPro/releases/latest">`{=html}
-`<strong>`{=html}Download Latest APK`</strong>`{=html} `</a>`{=html}
- \| 
-`<a href="https://github.com/shoryadevraj/ShopTrackPro/releases">`{=html}
-All Releases `</a>`{=html}
-```{=html}
+  <strong>Offline-first Android shop management</strong>
+  <br>
+  Manage products, prices, inventory, and sales from your Android device.
+  <br><br>
+  <a href="https://github.com/shoryadevraj/ShopTrackPro/releases/latest">
+    <strong>Download Latest APK</strong>
+  </a>
+  &nbsp;|&nbsp;
+  <a href="https://github.com/shoryadevraj/ShopTrackPro/releases">
+    All Releases
+  </a>
 </p>
-```
-
 ------------------------------------------------------------------------
 
 ## Overview
