@@ -41,6 +41,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -62,7 +63,7 @@ fun ShopTrackApp(db:StoreDb){
  var pinText by remember{mutableStateOf("")}; var pinAgain by remember{mutableStateOf("")}; var pinError by remember{mutableStateOf("")}
  var shops by remember{mutableStateOf(emptyList<Shop>())}; var activeShop by remember{mutableStateOf<Shop?>(null)}
  var catalog by remember{mutableStateOf(emptyList<CatalogProduct>())}; var products by remember{mutableStateOf(emptyList<ShopProduct>())}
- var page by remember{mutableStateOf("shops")}; var search by remember{mutableStateOf("")}; var notice by remember{mutableStateOf("")}; var showExitDialog by remember{mutableStateOf(false)}
+ var page by remember{mutableStateOf("shops")}; var search by remember{mutableStateOf("")}; var notice by remember{mutableStateOf("")}; var scannerPurpose by remember{mutableStateOf("catalog")}; var showExitDialog by remember{mutableStateOf(false)}
  var selected by remember{mutableStateOf<ShopProduct?>(null)}; var confirmDeleteProduct by remember{mutableStateOf(false)}; var selectedCatalog by remember{mutableStateOf<CatalogProduct?>(null)}
  var editCatalog by remember{mutableStateOf<CatalogProduct?>(null)}; var showProductForm by remember{mutableStateOf(false)}
  var showShopForm by remember{mutableStateOf(false)}; var editShop by remember{mutableStateOf<Shop?>(null)}
@@ -108,13 +109,28 @@ fun ShopTrackApp(db:StoreDb){
   existing.forEach{old->val template=templates[old.nameEn.lowercase(Locale.ROOT)];if(template!=null&&template.aliases.isNotBlank()){val merged=(old.aliases.split(",").map{it.trim()}+template.aliases.split(",").map{it.trim()}).filter{it.isNotBlank()}.distinct().joinToString(", ");if(merged!=old.aliases)dao.updateCatalog(old.copy(aliases=merged))}}
   catalog=dao.getCatalog();refreshShops()
  }
+ LaunchedEffect(notice){val message=notice;if(message.isNotBlank()){delay(3500);if(notice==message)notice=""}}
  LaunchedEffect(activeShop?.id){refreshProducts()}
  LaunchedEffect(selected?.id){refreshDetail()}
  val barcodeLauncher=rememberLauncherForActivityResult(ScanContract()){r->
-  if(r.contents!=null)scope.launch{
-   val match=dao.byBarcode(r.contents!!)
-   if(match!=null){selectedCatalog=match;showProductForm=true;editCatalog=match;nameEn=match.nameEn;brand=match.brand;nameHi=match.nameHi;nameHinglish=match.aliases;category=match.category;desc=match.description;barcode=match.barcode;unit=match.defaultUnit;notice="Barcode match found. Confirm details."}
-   else{barcode=r.contents!!;showProductForm=true;editCatalog=null;nameEn="";brand="";nameHi="";nameHinglish="";category="";desc="";unit="Piece";notice="Unknown barcode. Complete product details to add it to the catalog."}
+  val scanned=r.contents?.trim()
+  if(!scanned.isNullOrBlank())scope.launch{
+   when(scannerPurpose){
+    "lookup"->{search=scanned;page="products";notice="Searching products for barcode $scanned."}
+    "assign"->{
+     val sp=selected
+     val c=sp?.let{dao.getCatalog().firstOrNull{item->item.id==it.catalogId}}
+     val existing=dao.byBarcode(scanned)
+     if(c==null)notice="Select a product before assigning a barcode."
+     else if(existing!=null&&existing.id!=c.id)notice="This barcode is already assigned to ${existing.nameEn.ifBlank{existing.nameHi}}."
+     else{dao.updateCatalog(c.copy(barcode=scanned));catalog=dao.getCatalog();notice="Barcode assigned to ${c.nameEn.ifBlank{c.nameHi}}."}
+    }
+    else->{
+     val match=dao.byBarcode(scanned)
+     if(match!=null){selectedCatalog=match;showProductForm=true;editCatalog=match;nameEn=match.nameEn;brand=match.brand;nameHi=match.nameHi;nameHinglish=match.aliases;category=match.category;desc=match.description;barcode=match.barcode;unit=match.defaultUnit;notice="Barcode match found. Confirm details."}
+     else{barcode=scanned;showProductForm=true;editCatalog=null;nameEn="";brand="";nameHi="";nameHinglish="";category="";desc="";unit="Piece";notice="Unknown barcode. Complete product details to add it to the catalog."}
+    }
+   }
   }
  }
  val photoLauncher=rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()){bmp->
@@ -172,17 +188,17 @@ fun ShopTrackApp(db:StoreDb){
     if(owner)Button(onClick={editShop=null;shopName="";shopAddress="";shopPhone="";showShopForm=true},Modifier.fillMaxWidth()){Icon(Icons.Default.Add,null);Text(" Create shop")}
    }
    "products"->{
-    Row(verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(activeShop?.name?: "Products",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(if(owner)"Manage this shop's products" else "Read-only product list",style=MaterialTheme.typography.bodySmall)};if(owner){IconButton(onClick={barcodeLauncher.launch(ScanOptions().setPrompt("Scan product barcode").setBeepEnabled(false).setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES))}){Icon(Icons.Default.QrCodeScanner,"Scan barcode")};IconButton(onClick={photoLauncher.launch(null)}){Icon(Icons.Default.PhotoCamera,"Scan label")}}}
-    OutlinedTextField(search,{search=it},Modifier.fillMaxWidth(),label={Text("Search English, Hindi, Hinglish, category or barcode")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true)
+    Row(verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(activeShop?.name?: "Products",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(if(owner)"Manage this shop's products" else "Read-only product list",style=MaterialTheme.typography.bodySmall)};if(owner){IconButton(onClick={scannerPurpose="catalog";barcodeLauncher.launch(ScanOptions().setPrompt("Scan product barcode").setBeepEnabled(false).setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES))}){Icon(Icons.Default.QrCodeScanner,"Scan barcode")};IconButton(onClick={photoLauncher.launch(null)}){Icon(Icons.Default.PhotoCamera,"Scan label")}}}
+    OutlinedTextField(search,{search=it},Modifier.fillMaxWidth(),label={Text("Search product, brand, category or barcode")},leadingIcon={Icon(Icons.Default.Search,null)},trailingIcon={IconButton(onClick={scannerPurpose="lookup";barcodeLauncher.launch(ScanOptions().setPrompt("Scan barcode to find product").setBeepEnabled(false).setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES))}){Icon(Icons.Default.QrCodeScanner,"Scan barcode")}},singleLine=true)
     if(owner)Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={showProductForm=true;editCatalog=null;nameEn="";brand="";nameHi="";nameHinglish="";category="";desc="";barcode="";unit="Piece"},Modifier.weight(1f)){Icon(Icons.Default.Add,null);Text("Add product")};OutlinedButton(onClick={page="catalog"},Modifier.weight(1f)){Text("Browse catalog")}}
-    LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){items(products.filter{sp->val c=catalog.firstOrNull{it.id==sp.catalogId};c!=null&&(search.isBlank()||listOf(c.nameEn,c.nameHi,c.category,c.aliases,c.barcode).any{it.contains(search,true)})},key={it.id}){sp->
+    LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){items(products.filter{sp->val c=catalog.firstOrNull{it.id==sp.catalogId};c!=null&&(search.isBlank()||listOf(c.nameEn,c.nameHi,c.brand,c.category,c.aliases,c.barcode).any{it.contains(search,true)})},key={it.id}){sp->
      val c=catalog.firstOrNull{it.id==sp.catalogId}
      if(c!=null)ProductTile(sp,c,dao,owner){selected=sp;page="detail"}
     }}
    }
    "catalog"->{
     Text("Master product catalog",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-    OutlinedTextField(search,{search=it},Modifier.fillMaxWidth(),label={Text("Search English, Hindi or Hinglish (e.g. Pashu Aahar)")},singleLine=true)
+    OutlinedTextField(search,{search=it},Modifier.fillMaxWidth(),label={Text("Search product, brand, category or alias")},singleLine=true)
     LazyColumn(verticalArrangement=Arrangement.spacedBy(6.dp)){items(catalog.filter{!it.description.contains("Pack size:") && (search.isBlank()||listOf(it.nameEn,it.nameHi,it.category,it.aliases,it.barcode,it.brand).any{s->s.contains(search,true)})}){c->
      Card(Modifier.fillMaxWidth().clickable{if(!owner)notice="Owner access required." else scope.launch{val shop=activeShop;if(shop==null)notice="Create/select a shop first." else{val id=dao.addShopProduct(ShopProduct(shopId=shop.id,catalogId=c.id));if(id==-1L)notice="Product already exists in this shop." else notice="${c.nameEn} added.";refreshProducts();page="products"}}}){Column(Modifier.padding(12.dp)){Text(listOf(c.nameEn,c.nameHi,c.aliases).filter{it.isNotBlank()}.joinToString(" • "),fontWeight=FontWeight.Bold);Text(listOf(c.brand,c.category,c.description).filter{it.isNotBlank()}.joinToString(" · "),style=MaterialTheme.typography.bodySmall)}}
     }}
@@ -191,7 +207,12 @@ fun ShopTrackApp(db:StoreDb){
     val sp=selected;val c=sp?.let{x->catalog.firstOrNull{it.id==x.catalogId}}
     if(sp==null||c==null)Text("Select a product.")
     else{
-     Row(verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(listOf((if(sp.displayNameEn.isBlank())c.nameEn else sp.displayNameEn),(if(sp.displayNameHi.isBlank())c.nameHi else sp.displayNameHi),c.aliases).filter{it.isNotBlank()}.joinToString(" • "),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(listOf(c.brand,c.category,c.description).filter{it.isNotBlank()}.joinToString(" · "),style=MaterialTheme.typography.bodySmall)};if(owner){IconButton(onClick={editCatalog=c;nameEn=c.nameEn;brand=c.brand;nameHi=c.nameHi;nameHinglish=c.aliases;category=c.category;desc=c.description;barcode=c.barcode;unit=c.defaultUnit;showProductForm=true}){Icon(Icons.Default.Edit,null)};IconButton(onClick={confirmDeleteProduct=true}){Icon(Icons.Default.Delete,null,tint=MaterialTheme.colorScheme.error)}}}
+     Row(verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(listOf((if(sp.displayNameEn.isBlank())c.nameEn else sp.displayNameEn),(if(sp.displayNameHi.isBlank())c.nameHi else sp.displayNameHi),c.aliases).filter{it.isNotBlank()}.joinToString(" • "),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(listOf(c.brand,c.category,c.description).filter{it.isNotBlank()}.joinToString(" · "),style=MaterialTheme.typography.bodySmall)};if(owner){IconButton(onClick={editCatalog=c;nameEn=c.nameEn;brand=c.brand;nameHi=c.nameHi;nameHinglish=c.aliases;category=c.category;desc=c.description;barcode=c.barcode;unit=c.defaultUnit;showProductForm=true}){Icon(Icons.Default.Edit,null)};IconButton(onClick={scope.launch{
+       val copy=dao.insertCatalogOne(c.copy(id=0,nameEn=if(c.nameEn.isBlank())"Copy of ${c.nameHi}" else "${c.nameEn} (Copy)",barcode=""))
+       val newShopProduct=dao.addShopProduct(ShopProduct(shopId=sp.shopId,catalogId=copy))
+       if(newShopProduct!=-1L){dao.getPrices(sp.id).forEach{oldPrice->dao.addPrice(PriceOption(shopProductId=newShopProduct,quantity=oldPrice.quantity,unit=oldPrice.unit,purchasePaise=oldPrice.purchasePaise,sellingPaise=oldPrice.sellingPaise))};catalog=dao.getCatalog();refreshProducts();notice="Product duplicated. Review its details and stock before use."}
+       else notice="Could not duplicate product in this shop."
+      }}){Icon(Icons.Default.ContentCopy,"Duplicate product")};IconButton(onClick={confirmDeleteProduct=true}){Icon(Icons.Default.Delete,null,tint=MaterialTheme.colorScheme.error)}}}
      Spacer(Modifier.height(10.dp));Text("Price options",fontWeight=FontWeight.Bold)
      if(priceOptions.isEmpty())Text("No prices added.")
      priceOptions.forEach{p->Card(Modifier.fillMaxWidth().padding(vertical=3.dp)){Column(Modifier.padding(12.dp)){
@@ -199,7 +220,7 @@ fun ShopTrackApp(db:StoreDb){
       if(owner){if(p.purchasePaise>0){val diff=p.sellingPaise-p.purchasePaise;val pct=diff.toDouble()/p.purchasePaise*100.0;val margin=if(p.sellingPaise>0)diff.toDouble()/p.sellingPaise*100.0 else 0.0;Text("Purchase ${money(p.purchasePaise)} · ${if(diff>=0)"Profit" else "Loss"} ${money(kotlin.math.abs(diff))}");Text("${if(diff>=0)"Profit" else "Loss"} on cost: %.2f%% · Margin: %.2f%%".format(Locale.US,kotlin.math.abs(pct),kotlin.math.abs(margin)),style=MaterialTheme.typography.bodySmall)}else Text("Purchase price not recorded",style=MaterialTheme.typography.bodySmall)};if(owner)Row{TextButton(onClick={editPrice=p;qty=p.quantity.toString();priceUnit=p.unit;buy=(p.purchasePaise/100.0).toString();sell=(p.sellingPaise/100.0).toString();showPriceForm=true}){Text("Edit")};TextButton(onClick={scope.launch{dao.deletePrice(p);refreshDetail();notice="Price option deleted."}}){Text("Delete")};TextButton(onClick={currentPrice=p;histories=emptyList();scope.launch{histories=dao.priceHistory(p.id)};page="history"}){Text("History")}}
      }}}
      Text("Stock",fontWeight=FontWeight.Bold);Text(balance?.let{"${it.quantity} ${it.unit} · Minimum ${it.minimum}"}?:"Stock not recorded")
-     if(owner){Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={barcodeLauncher.launch(ScanOptions().setPrompt("Scan product barcode").setBeepEnabled(false).setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES))},Modifier.weight(1f)){Icon(Icons.Default.QrCodeScanner,null);Text(" Scan barcode")};Button(onClick={qty="1";priceUnit=c.defaultUnit;buy="";sell="";editPrice=null;showPriceForm=true},Modifier.weight(1f)){Text("Add price")}};Button(onClick={stockQty="";stockUnit=balance?.unit?:c.defaultUnit;showStockForm=true},Modifier.fillMaxWidth()){Text("Stock movement")};OutlinedButton(onClick={saleQty="1";showSaleForm=true},Modifier.fillMaxWidth()){Icon(Icons.Default.PointOfSale,null);Text(" Record sale")};Text("Recent stock movements",fontWeight=FontWeight.Bold);movements.take(10).forEach{Text("${it.type} ${it.quantity} ${it.unit} · ${stamp(it.createdAt)}",style=MaterialTheme.typography.bodySmall)}}
+     if(owner){Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={scannerPurpose="assign";barcodeLauncher.launch(ScanOptions().setPrompt("Scan barcode to assign to this product").setBeepEnabled(false).setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES))},Modifier.weight(1f)){Icon(Icons.Default.QrCodeScanner,null);Text(" Scan barcode")};Button(onClick={qty="1";priceUnit=c.defaultUnit;buy="";sell="";editPrice=null;showPriceForm=true},Modifier.weight(1f)){Text("Add price")}};Button(onClick={stockQty="";stockUnit=balance?.unit?:c.defaultUnit;showStockForm=true},Modifier.fillMaxWidth()){Text("Stock movement")};OutlinedButton(onClick={saleQty="1";showSaleForm=true},Modifier.fillMaxWidth()){Icon(Icons.Default.PointOfSale,null);Text(" Record sale")};Text("Recent stock movements",fontWeight=FontWeight.Bold);movements.take(10).forEach{Text("${it.type} ${it.quantity} ${it.unit} · ${stamp(it.createdAt)}",style=MaterialTheme.typography.bodySmall)}}
     }
    }
    "history"->{Text("Price history",style=MaterialTheme.typography.headlineSmall);histories.forEach{Text("${stamp(it.changedAt)} · Buy ${money(it.purchasePaise)} · Sell ${money(it.sellingPaise)}")}}
@@ -239,7 +260,7 @@ fun ShopTrackApp(db:StoreDb){
      OutlinedButton(onClick={backupIn.launch(arrayOf("application/json"))},Modifier.fillMaxWidth()){Icon(Icons.Default.Restore,null);Text(" Restore backup")}
      OutlinedButton(onClick={showPin=true;setupPin=true;pinText="";pinAgain=""},Modifier.fillMaxWidth()){Icon(Icons.Default.Key,null);Text(" Change owner PIN")}
     }else Text("Unlock owner mode to access backup, restore and management.")
-    Text("Designed & developed by Shorya Devraj",color=mint);Text("ShopTrack Pro v2.2.6 · © 2026")
+    Text("Designed & developed by Shorya Devraj",color=mint);Text("ShopTrack Pro v2.3.0 · © 2026")
     Text("Backup files contain private business information. Keep them secure.",style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
    }
   }
@@ -277,7 +298,7 @@ fun ShopTrackApp(db:StoreDb){
  }}){Text("Save")}},dismissButton={TextButton(onClick={showShopForm=false}){Text("Cancel")}})
  // Catalog product editor
  if(showProductForm)AlertDialog(onDismissRequest={showProductForm=false},title={Text(if(editCatalog==null)"Add catalog product" else "Edit catalog product")},text={Column(Modifier.heightIn(max=520.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())){
-  OutlinedTextField(nameEn,{nameEn=it},label={Text("Product name (English, optional)")});OutlinedTextField(brand,{brand=it},label={Text("Brand (optional)")});OutlinedTextField(nameHi,{nameHi=it},label={Text("Product name (Hindi, optional)")});OutlinedTextField(nameHinglish,{nameHinglish=it},label={Text("Product name (Hinglish / Roman Hindi, optional)")});Text("Fill any one, any two, or all three name formats.",style=MaterialTheme.typography.bodySmall);OutlinedTextField(category,{category=it},label={Text("Category")});OutlinedTextField(desc,{desc=it},label={Text("Description")});OutlinedTextField(barcode,{barcode=it},label={Text("Barcode (optional)")});OutlinedTextField(unit,{unit=it},label={Text("Default unit")});if(ocr.isNotBlank())Text("OCR: ${ocr.take(220)}",style=MaterialTheme.typography.bodySmall)
+  OutlinedTextField(nameEn,{nameEn=it},label={Text("Product name (English, optional)")});OutlinedTextField(brand,{brand=it},label={Text("Brand (optional)")});OutlinedTextField(nameHi,{nameHi=it},label={Text("Product name (Hindi, optional)")});OutlinedTextField(nameHinglish,{nameHinglish=it},label={Text("Product name (Hinglish / Roman Hindi, optional)")});Text("Fill any one, any two, or all three name formats.",style=MaterialTheme.typography.bodySmall);OutlinedTextField(category,{category=it},label={Text("Category")});val categorySuggestions=catalog.map{it.category}.filter{it.isNotBlank()}.distinct().filter{category.isBlank()||it.contains(category,true)}.take(6);if(categorySuggestions.isNotEmpty())Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){categorySuggestions.forEach{suggestion->AssistChip(onClick={category=suggestion},label={Text(suggestion)})}};OutlinedTextField(desc,{desc=it},label={Text("Description")});OutlinedTextField(barcode,{barcode=it},label={Text("Barcode (optional)")});Text("Default unit");Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){listOf("kg","g","L","ml","Piece","Packet","Bag","Dozen").forEach{u->FilterChip(selected=unit.equals(u,true),onClick={unit=u},label={Text(u)})}};OutlinedTextField(unit,{unit=it},label={Text("Other unit")});if(ocr.isNotBlank())Text("OCR: ${ocr.take(220)}",style=MaterialTheme.typography.bodySmall)
  }},confirmButton={TextButton(onClick={scope.launch{
   if(nameEn.isBlank()&&nameHi.isBlank()&&nameHinglish.isBlank())notice="Enter at least one product name: English, Hindi or Hinglish." else if(category.isBlank())notice="Category is required." else{
    val mergedAliases=(nameHinglish.split(",").map{it.trim()}+(editCatalog?.aliases?.split(",")?:emptyList()).map{it.trim()}).filter{it.isNotBlank()}.distinct().joinToString(", ")
@@ -289,7 +310,7 @@ fun ShopTrackApp(db:StoreDb){
  }}){Text("Save")}},dismissButton={TextButton(onClick={showProductForm=false}){Text("Cancel")}})
  // Price form
  if(showPriceForm&&selected!=null)AlertDialog(onDismissRequest={showPriceForm=false},title={Text(if(editPrice==null)"Add price option" else "Edit price option")},text={Column{
-  OutlinedTextField(qty,{qty=it},label={Text("Pack quantity")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal));OutlinedTextField(priceUnit,{priceUnit=it},label={Text("Unit (kg, g, L, ml, Piece, Packet, Bag...)")})
+  OutlinedTextField(qty,{qty=it},label={Text("Pack quantity")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal));Text("Unit");Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){listOf("kg","g","L","ml","Piece","Packet","Bag","Dozen").forEach{u->FilterChip(selected=priceUnit.equals(u,true),onClick={priceUnit=u},label={Text(u)})}};OutlinedTextField(priceUnit,{priceUnit=it},label={Text("Other unit")})
   OutlinedTextField(buy,{buy=it},label={Text("Purchase price ₹ (optional, private)")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal));OutlinedTextField(sell,{sell=it},label={Text("Selling price ₹ (required)")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal))
   val liveBuy=buy.toDoubleOrNull();val liveSell=sell.toDoubleOrNull()
   if(liveBuy!=null&&liveBuy>0&&liveSell!=null&&liveSell>=0){val d=liveSell-liveBuy;val pc=d/liveBuy*100.0;val mg=if(liveSell>0)d/liveSell*100.0 else 0.0;Text("${if(d>=0)"Profit" else "Loss"}: ${money(kotlin.math.abs(rupeesToPaise(d.toString())))}",color=if(d>=0)mint else Color.Red,fontWeight=FontWeight.Bold);Text("${if(d>=0)"Profit" else "Loss"} on cost: %.2f%% · Margin: %.2f%%".format(Locale.US,kotlin.math.abs(pc),kotlin.math.abs(mg)),style=MaterialTheme.typography.bodySmall)}else Text("Enter both prices to preview profit or loss and margin.",style=MaterialTheme.typography.bodySmall)

@@ -19,8 +19,8 @@ android {
         applicationId = "com.shoptrackpro.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 27
-        versionName = "2.2.6"
+        versionCode = 28
+        versionName = "2.3.0"
     }
     buildFeatures { compose = true }
     buildTypes {
